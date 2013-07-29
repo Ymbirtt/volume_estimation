@@ -1,0 +1,132 @@
+//Delicious Mersenne Twister PRNG
+#include"mt.h"
+
+//I don't see why I should have to justify any of these includes.
+#include<stdio.h>
+#include<stdlib.h>
+#include<string.h>
+#include<math.h>
+#include<assert.h>
+#include<time.h>
+
+//The probability of remaining stationary in a random walk
+#define WAIT_PROB (1/4)
+
+typedef struct __point__{
+    double* x;
+    int n;
+} point;
+
+//An inclusion oracle should take a point and return 0 iff the point is not
+//inside the shape
+typedef int (*inclusion_oracle)(point);
+
+//Creates a freshly allocated copy of the point p. Use with caution and collect
+//your garbage
+point copy_point(point p){
+    point new_point;
+    int i;
+
+    new_point.n = p.n;
+    new_point.x = malloc(p.n*sizeof(double));
+    for(i=0; i<p.n; i++){
+        new_point.x[i] = p.x[i];
+    }
+    return new_point;
+}
+
+//Returns a freshly allocated point in space after performing a particular
+//number of steps in a uniform grid random walk, with steps of size delta
+void grid_walk(point start, int steps, double delta, inclusion_oracle in){
+    //The current location in the walk
+    point query_point = copy_point(start);
+    int i,j, k;
+    //The directions in which the walk might proceed. This is implemented in a
+    //slightly fudgy way, using forced sign-and-magnitude representation for ints,
+    //meaning I can use a negative 0. The MSB is used as the sign bit. Since the
+    //number of dimensions must be positive, using a signed type to represent it
+    //ensures that this bit is available
+    int* valid_dirs = malloc(start.n*sizeof(int));
+    int msb_mask = 0;
+    //The number of directions in which the walk might proceed
+    int num_valid_dirs = 0;
+
+    printf("msb_mask = %d\n", msb_mask);
+    msb_mask = ~(((unsigned int) ~msb_mask)>>1);
+    printf("msb_mask = %d\n", msb_mask);
+    
+    for (i=0; i<steps; i++){
+        if(!(genrand_real1()<WAIT_PROB)){
+            num_valid_dirs = 0;
+            for(j=0; j<start.n; j++){
+                //Can we move in the positive dimension by distance delta?
+                query_point.x[j] += delta;
+                if (in(query_point)){
+                    valid_dirs[num_valid_dirs] = j;
+                    num_valid_dirs++;
+                }
+
+                //How about the negative?
+                query_point.x[j] -= 2*delta;
+                if (in(query_point)){
+                    valid_dirs[num_valid_dirs] = j^msb_mask;
+                    num_valid_dirs++;
+                }
+
+                //And now reset the query point
+                query_point.x[j] += delta;
+            }
+
+            //Pick a random valid direction in which to move
+            k = genrand_int32() % num_valid_dirs; 
+
+            if(!(valid_dirs[k] & msb_mask)){
+                //If the direction of travel's MSB is unset, go that way by a
+                //positive amount
+                printf("%d\n", valid_dirs[k]);
+                query_point.x[valid_dirs[k]] += delta;
+                start.x[valid_dirs[k]] += delta;
+            } else {
+                //Otherwise, negative
+                printf("-%d\n", valid_dirs[k]^msb_mask);
+                query_point.x[valid_dirs[k]^msb_mask] -= delta;
+                start.x[valid_dirs[k]^msb_mask] -= delta;
+            }
+        } else {
+            printf("X\n");
+        }
+    }
+
+        
+    //free(query_point.x);
+    //free(valid_dirs);
+    
+    printf("All done!\n");
+
+}
+
+//The square [0,1]X[0,1]
+int square(point p){
+    assert(p.n == 2);
+    if(p.x[0] >= 0.0 && p.x[0] <= 1.0 && p.x[1] >= 0 && p.x[1] <= 1.0){
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
+int main (void) {
+    point p;
+
+    init_genrand(0);
+
+    p.n = 2;
+    p.x = malloc(2*sizeof(double));
+
+    p.x[0] = 0.5;
+    p.x[1] = 0.5;
+
+    grid_walk(p, 1000, 0.1, &square);
+
+    return 0;
+}
