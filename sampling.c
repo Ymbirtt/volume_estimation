@@ -23,7 +23,6 @@ typedef int (*inclusion_oracle)(point);
 
 void print_point(point p){
     int i;
-    if (p.n == -1) return;
     for (i=0; i<p.n-1; i++){
         printf("%lf,", p.x[i]);
     }
@@ -108,13 +107,13 @@ void grid_walk(point start, int steps, double delta, inclusion_oracle in){
         }
     }
 
-
+    //For some reason this throws SIGABRTs on Cygwin
     //free(query_point.x);
     //free(valid_dirs);
 
 }
 
-//The square [0,1]X[0,1]
+//The square [0,1]^5
 int square(point p){
     assert(p.n == 5);
     if(p.x[0] >= 0.0 && p.x[0] <= 1.0 &&
