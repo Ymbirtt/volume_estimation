@@ -11,6 +11,8 @@
 
 //The probability of remaining stationary in a random walk
 #define WAIT_PROB (0)
+#define PI (3.1415926535897932384626338)
+#define E  (2.718281828459045235360)
 
 typedef struct __point__{
     double* x;
@@ -29,6 +31,12 @@ void print_point(point p){
     printf("%lf", p.x[i]);
 }
 
+//Returns a continuous, uniormly distributed random-ish number between a and b
+//seeding function should be called beforehand
+double uniform(double a, double b){
+    return genrand_real1()*(b-a) + a;
+}
+
 //Creates a freshly allocated copy of the point p. Use with caution and collect
 //your garbage
 point copy_point(point p){
@@ -43,7 +51,72 @@ point copy_point(point p){
     return new_point;
 }
 
-//Returns a freshly allocated point in space after performing a particular
+//Store a uniformly selected random vector of length r in v
+void random_dir(point v, double r){
+    int i;
+    double phi;
+
+    for (i=0; i<v.n-2; i++){
+        phi = uniform(0,PI);
+        v.x[i] = r * cos(phi);
+        r = r * sin(phi);
+    }
+
+    phi = uniform(0,2*PI);
+    v.x[i] = r*cos(phi);
+    v.x[i+1] = r*sin(phi);
+}
+
+//Adds src1 and src2 and stores the result in dest
+void add_point(point dest, point src1, point src2){
+    int i;
+
+    assert(src1.n == src2.n);
+    assert(dest.n == src1.n);
+
+    for (i=0; i<src1.n; i++){
+        dest.x[i] = src1.x[i] + src2.x[i];
+    }
+}
+
+//Subtracts src1-src2 and stores the result in dest
+void sub_point(point dest, point src1, point src2){
+    int i;
+
+    assert(src1.n == src2.n);
+    assert(dest.n == src1.n);
+
+    for (i=0; i<src1.n; i++){
+        dest.x[i] = src1.x[i] - src2.x[i];
+    }
+}
+
+void ball_walk(point start, int steps, double delta, inclusion_oracle in){
+    point query_point = copy_point(start);
+    point dir;
+    int i;
+
+    dir.n = start.n;
+    dir.x = malloc(dir.n*sizeof(double));
+
+    //printf("%lf\n", delta);
+    
+    for (i=0; i<steps; i++){
+        //print_point(start);
+        //printf("\n");
+    
+        random_dir(dir, delta);
+        add_point(query_point, start, dir);
+
+        if (in(query_point)){
+            add_point(start, start, dir);
+        }
+    }
+    free(dir.x);
+
+}
+
+//Perturbs start according to a random walk in space after performing a particular
 //number of steps in a uniform grid random walk, with steps of size delta
 void grid_walk(point start, int steps, double delta, inclusion_oracle in){
     //The current location in the walk
@@ -142,7 +215,7 @@ int main (int argc, char** argv) {
 
     p.n = 5;
     p.x = malloc(p.n*sizeof(double));
-    for(i = 0; i<1000; i++){
+    for(i = 0; i<1; i++){
         p.x[0] = 0.5;
         p.x[1] = 0.5;
         p.x[2] = 0.5;
@@ -151,7 +224,7 @@ int main (int argc, char** argv) {
 
         printf("%d,", 1<<atoi(argv[1]));
         printf("%d,", seed);
-        grid_walk(p, 1<<atoi(argv[1]), 0.001, &square);
+        ball_walk(p, 1<<atoi(argv[1]), 1/((double)(1<<10)), &square);
 
         print_point(p);
         printf("\n");

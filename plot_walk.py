@@ -9,11 +9,12 @@ def dance(executable):
     
     for s in ss.split("\n")[:-1]:
         print s
-        xs.append(tuple(float(x) for x in s[1:-1].split(',')))
+        xs.append(tuple(float(x) for x in s.split(',')))
 
     print xs
     return xs
     
-xs, ys = zip(*dance("./sampling.exe"))
-plot(xs, ys)
+xs,ys,_,_,_ = zip(*dance("./sampling.exe 15"))
+
+plot(xs,ys)
 show()
