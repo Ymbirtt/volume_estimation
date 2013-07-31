@@ -14,7 +14,9 @@ def dance(executable):
     print xs
     return xs
     
-xs,ys,_,_,_ = zip(*dance("./sampling.exe 15"))
+xs,ys,_,_,_ = zip(*dance("./sampling.exe 5"))
 
 plot(xs,ys)
+xlim([0,1])
+ylim([0,1])
 show()

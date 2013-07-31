@@ -28,10 +28,10 @@ def test_points(xs):
     print "======"
     
 xs = read_points("results.csv")
-for x in range(14):
+for x in range(15):
     test_points(xs[1000*x:1000*(x+1)])
     plot_points(xs[1000*x:1000*(x+1)])
     xlim([0,1])
     ylim([0,1])
-    savefig("./images/ball_walk_" + str((int(xs[1000*x][0]))) + ".png")
+    savefig("./images/hit_and_run_" + str((int(xs[1000*x][0]))) + ".png")
     cla()

@@ -107,6 +107,18 @@ void add_point(point dest, point src1, point src2){
     }
 }
 
+//Adds src1+(lambda*src2) and stores the result in dest
+void addmul_point(point dest, point src1, double lambda, point src2){
+    int i;
+
+    assert(src1.n == src2.n);
+    assert(dest.n == src1.n);
+
+    for (i=0; i<src1.n; i++){
+        dest.x[i] = src1.x[i] + (lambda * src2.x[i]);
+    }
+}
+
 //Subtracts src1-src2 and stores the result in dest
 void sub_point(point dest, point src1, point src2){
     int i;
@@ -116,6 +128,110 @@ void sub_point(point dest, point src1, point src2){
 
     for (i=0; i<src1.n; i++){
         dest.x[i] = src1.x[i] - src2.x[i];
+    }
+}
+
+//Returns the squared distance between the given points
+double sq_dist(point p1, point p2){
+    int i;
+    double dist = 0.0;
+
+    assert(p1.n == p2.n);
+    
+    for (i=0; i<p1.n; i++){
+        dist += (p1.x[i] - p2.x[i]) * (p1.x[i] - p2.x[i]);
+    }
+    
+    return dist;
+}
+
+//Copies the point from src to dest, assuming dest is already allocated
+void move_point(point dest, point src){
+    int i;
+    
+    assert(src.n == dest.n);
+    
+    for(i=0; i<src.n; i++){
+        dest.x[i] = src.x[i];
+    }
+}
+
+//Returns the distance from the starting point to the boundary of the convex 
+//shape in the given direction, whose diameter is bounded above by the given,
+//correct to error bounds +- sqrt(epsilon), assuming dir is of unit length
+//If diameter is negative, the returned distance will be nagative and in the 
+//opposite direction from dir
+double boundary_distance(point start, point dir, double epsilon, double diameter, inclusion_oracle in){
+    point lower = copy_point(start);
+    point upper;
+    point query_point;
+    double distance = 0;
+    
+    //printf("Finding boundary\n");
+    
+    //printf("starting at ");
+    //print_point(start);
+    //printf("\n");
+    
+    upper.n = start.n;
+    upper.x = malloc(start.n*sizeof(double));
+
+    query_point.n = start.n;
+    query_point.x = malloc(start.n*sizeof(double));
+
+    addmul_point(upper, start, diameter, dir);
+    
+    assert(in(lower));
+    //print_point(upper);
+    //printf("\n");
+    assert(!in(upper));
+    
+    while (sq_dist(lower, upper) > epsilon){
+        //printf("dist = %lf\n", sq_dist(lower, upper));
+        diameter = diameter/2;
+        //printf("diameter = %lf\n", diameter);
+        addmul_point(query_point, lower, diameter, dir);
+        if (in(query_point)){
+            move_point(lower, query_point);
+            distance += diameter;
+        } else {
+            move_point(upper, query_point);
+        }
+    }
+    
+    free(upper.x);
+    free(lower.x);
+    free(query_point.x);
+    
+    //printf("distance = %lf\n", distance);
+    
+    //printf("======\n");
+    
+    return distance;
+}
+
+//Performs a hit and run walk for the given number of steps
+void hit_and_run(point start, int steps, double epsilon, 
+                    double diameter, inclusion_oracle in){
+    point dir;
+    //Upper and lower bounds on the distance in which we can walk in direction dir
+    //Tight within an error of epsilon
+    double ubound;
+    double lbound;
+    int i;
+    
+    dir.n = start.n;
+    dir.x = malloc(dir.n*sizeof(double));
+    
+    for (i=0; i<steps; i++){
+        //print_point(start);
+        //printf("\n");
+        random_dir(dir, 1);
+        
+        ubound = boundary_distance(start, dir, epsilon,  diameter, in);
+        lbound = boundary_distance(start, dir, epsilon, -diameter, in);
+        
+        addmul_point(start, start, uniform(lbound, ubound), dir);
     }
 }
 
@@ -166,8 +282,8 @@ void grid_walk(point start, int steps, double delta, inclusion_oracle in){
     //printf("msb_mask = %d\n", msb_mask);
 
     for (i=0; i<steps; i++){
-        //print_point(start);
-        //printf("\n");
+        print_point(start);
+        printf("\n");
         if(!(genrand_real1()<WAIT_PROB)){
             num_valid_dirs = 0;
             for(j=0; j<start.n; j++){
@@ -253,7 +369,7 @@ int main (int argc, char** argv) {
 
         printf("%d,", 1<<atoi(argv[1]));
         printf("%d,", seed);
-        ball_walk(p, 1<<atoi(argv[1]), 0.002, &square);
+        hit_and_run(p, 1<<atoi(argv[1]), 0.0001, sqrt(5), &square);
 
         print_point(p);
         printf("\n");
