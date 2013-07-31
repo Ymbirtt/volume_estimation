@@ -33,5 +33,5 @@ for x in range(14):
     plot_points(xs[1000*x:1000*(x+1)])
     xlim([0,1])
     ylim([0,1])
-    savefig("./images/grid_walk_" + str((int(xs[1000*x][0]))) + ".png")
+    savefig("./images/ball_walk_" + str((int(xs[1000*x][0]))) + ".png")
     cla()

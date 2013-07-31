@@ -51,20 +51,48 @@ point copy_point(point p){
     return new_point;
 }
 
-//Store a uniformly selected random vector of length r in v
+//Stores two normal gaussian variables in dest1 and dest2
+void gaussians(double* dest1, double* dest2){
+    double rand1 = uniform(0,1);
+    double rand2 = uniform(0,1);
+    
+    *dest1 = sqrt(-2*log(rand1)) * cos(2*PI*(rand2));
+    *dest2 = sqrt(-2*log(rand1)) * sin(2*PI*(rand2));
+}
+
+//Store a uniformly selected random vector of magnitude r in v
+//http://mathworld.wolfram.com/HyperspherePointPicking.html
+//Probably worth bringing a Ziggurat library in, time permitting.
+//http://people.sc.fsu.edu/~jburkardt/c_src/ziggurat/ziggurat.html
 void random_dir(point v, double r){
     int i;
-    double phi;
+    double rand1, rand2;
+    double square_sum = 0;
 
-    for (i=0; i<v.n-2; i++){
-        phi = uniform(0,PI);
-        v.x[i] = r * cos(phi);
-        r = r * sin(phi);
+    for (i=0; i<v.n/2; i++){
+        gaussians(&rand1, &rand2);
+        
+        v.x[2*i] = rand1;
+        v.x[2*i+1] = rand2;
+
+        square_sum += rand1*rand1 + rand2*rand2;
+        
     }
 
-    phi = uniform(0,2*PI);
-    v.x[i] = r*cos(phi);
-    v.x[i+1] = r*sin(phi);
+    if (2*i != v.n){
+        gaussians(&rand1, &rand2);  
+        
+        v.x[2*i] = rand1;
+
+        square_sum += rand1*rand1;
+    }
+
+    square_sum = sqrt(square_sum);
+    
+    for (i=0; i<v.n; i++){
+        v.x[i] = v.x[i] * r / square_sum;
+    }
+
 }
 
 //Adds src1 and src2 and stores the result in dest
@@ -100,12 +128,13 @@ void ball_walk(point start, int steps, double delta, inclusion_oracle in){
     dir.x = malloc(dir.n*sizeof(double));
 
     //printf("%lf\n", delta);
-    
+
     for (i=0; i<steps; i++){
         //print_point(start);
         //printf("\n");
-    
+
         random_dir(dir, delta);
+        
         add_point(query_point, start, dir);
 
         if (in(query_point)){
@@ -215,7 +244,7 @@ int main (int argc, char** argv) {
 
     p.n = 5;
     p.x = malloc(p.n*sizeof(double));
-    for(i = 0; i<1; i++){
+    for(i = 0; i<1000; i++){
         p.x[0] = 0.5;
         p.x[1] = 0.5;
         p.x[2] = 0.5;
@@ -224,7 +253,7 @@ int main (int argc, char** argv) {
 
         printf("%d,", 1<<atoi(argv[1]));
         printf("%d,", seed);
-        ball_walk(p, 1<<atoi(argv[1]), 1/((double)(1<<10)), &square);
+        ball_walk(p, 1<<atoi(argv[1]), 0.002, &square);
 
         print_point(p);
         printf("\n");
