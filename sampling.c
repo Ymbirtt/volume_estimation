@@ -1,5 +1,9 @@
 //Delicious Mersenne Twister PRNG
 #include"mt.h"
+//And ziggurat normal PRNG
+#include"ziggurat.h"
+
+#include"sampling.h"
 
 //I don't see why I should have to justify any of these includes.
 #include<stdio.h>
@@ -14,7 +18,8 @@
 #define PI (3.1415926535897932384626338)
 #define E  (2.718281828459045235360)
 
-//#ifdef INTERFACE
+
+#ifdef INTERFACE
 
 typedef struct __point__{
     double* x;
@@ -26,7 +31,16 @@ typedef struct __point__{
 typedef int (*inclusion_oracle)(point);
 typedef double (*density)(point);
 
-//#endif
+#endif
+
+
+float ZIGGURAT_FN[128];
+int   ZIGGURAT_KN[128];
+float ZIGGURAT_WN[128];
+unsigned long int ZIGGURAT_SEED;
+
+
+
 
 void print_point(point p){
     int i;
@@ -73,7 +87,7 @@ void random_dir(point v, double r){
     int i;
     double rand1, rand2;
     double square_sum = 0;
-
+    /*
     for (i=0; i<v.n/2; i++){
         gaussians(&rand1, &rand2);
 
@@ -90,14 +104,21 @@ void random_dir(point v, double r){
         v.x[2*i] = rand1;
 
         square_sum += rand1*rand1;
+    }*/
+    
+    for (i=0; i<v.n; i++){
+        rand1 = r4_nor(&ZIGGURAT_SEED, ZIGGURAT_KN, ZIGGURAT_FN, ZIGGURAT_WN);
+        v.x[i] = rand1;
+        //printf("%lf\n", rand1);
+        square_sum += rand1*rand1;
     }
-
+    
     square_sum = sqrt(square_sum);
 
     for (i=0; i<v.n; i++){
         v.x[i] = v.x[i] * r / square_sum;
     }
-
+    
 }
 
 //Adds src1 and src2 and stores the result in dest
@@ -367,9 +388,9 @@ void hit_and_run_dist(point start, int steps, double epsilon,
     dir.n = start.n;
     dir.x = malloc(dir.n*sizeof(double));
 
-    printf("Start: ");
-    print_point(start);
-    printf("\n");
+    //printf("Start: ");
+    //print_point(start);
+    //printf("\n");
     assert(in(start));
     
     
@@ -378,9 +399,9 @@ void hit_and_run_dist(point start, int steps, double epsilon,
         //printf("\n");
         random_dir(dir, 1);
         
-        printf("Jumping in direction ");
-        print_point(dir);
-        printf("\n");
+        //printf("Jumping in direction ");
+        //print_point(dir);
+        //printf("\n");
 
         ubound = boundary_distance(start, dir, epsilon,  diameter, in);
         lbound = boundary_distance(start, dir, epsilon, -diameter, in);
@@ -399,9 +420,9 @@ void hit_and_run_dist(point start, int steps, double epsilon,
     }
 
     
-    printf("Finish: ");
-    print_point(start);
-    printf("\n");
+    //printf("Finish: ");
+    //print_point(start);
+    //printf("\n");
 
     assert(in(start));
 

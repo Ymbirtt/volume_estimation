@@ -1,5 +1,6 @@
 #include"sampling.h"
 #include"mt.h"
+#include"ziggurat.h"
 
 #include<stdio.h>
 #include<stdlib.h>
@@ -127,6 +128,11 @@ int main(void){
     int i;
     double vol;
     double total = 0;
+    
+    ZIGGURAT_SEED = 123456789;
+    
+    r4_nor_setup(ZIGGURAT_KN, ZIGGURAT_FN, ZIGGURAT_WN);
+    
     for(i=0; i<1000; i++){
         vol = estimate_volume(&square, 3, sqrt(3), 0.000001);
         printf("%lf\n", vol);

@@ -1,15 +1,13 @@
 /* This file was automatically generated.  Do not edit! */
-typedef struct __point__ __point__;
-struct __point__ {
+typedef struct __point__{
     double* x;
     int n;
-};
-typedef struct __point__ point;
-typedef double(*density)(point);
+} point;
+typedef int (*inclusion_oracle)(point);
+typedef double (*density)(point);
 void rejection_sample_dist(point p,density f,point lower,point upper,double f_max);
 double funky_dist(point p);
 int square(point p);
-typedef int(*inclusion_oracle)(point);
 void grid_walk(point start,int steps,double delta,inclusion_oracle in);
 void ball_walk(point start,int steps,double delta,inclusion_oracle in);
 void hit_and_run(point start,int steps,double epsilon,double diameter,inclusion_oracle in);
@@ -30,4 +28,7 @@ void gaussians(double *dest1,double *dest2);
 point copy_point(point p);
 double uniform(double a,double b);
 void print_point(point p);
-#define INTERFACE 0
+extern unsigned long int ZIGGURAT_SEED;
+extern float ZIGGURAT_WN[128];
+extern int ZIGGURAT_KN[128];
+extern float ZIGGURAT_FN[128];
