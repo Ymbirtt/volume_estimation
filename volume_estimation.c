@@ -82,10 +82,11 @@ int k_and_last_ball(point p){
     return BALL_ORACLE(p);
 }
 
-double estimate_volume(inclusion_oracle o, int n, double d, double epsilon){
+double estimate_volume(inclusion_oracle o, int n, double d, double epsilon, double theta){
     double vol = volume_nball(1,n);
+    double radius_ratio = exp((double) 1/n);
     int stages = (int) n*ceil(log(d)) +1;
-    int threads = 200;
+    int threads = (int) (400 * n * log(n) / (epsilon * epsilon));
     int i,j,k;
     int points_in;
     point p;
@@ -95,31 +96,39 @@ double estimate_volume(inclusion_oracle o, int n, double d, double epsilon){
     p.x = malloc(n*sizeof(double));
 
     for(i=0; i<n; i++) p.x[i] = 0;
-
-    init_genrand(clock());
+    
+    printf("Each stage uses %d threads\n", threads);
 
     BALL_ORACLE = o;
+    LAST_BALL_RADIUS = 1;
+    BALL_RADIUS = LAST_BALL_RADIUS * radius_ratio;
 
     for(i=1; i<stages; i++){
+        printf("Stage %d of %d      \r", i, stages);
+        fflush(stdout);
         points_in = 0;
 
-        BALL_RADIUS = exp((double) i/n);
-        LAST_BALL_RADIUS = exp((double) (i-1)/n);
+        //BALL_RADIUS = exp((double) i/(n));
+        //LAST_BALL_RADIUS = exp((double) (i-1)/(n));
 
         //printf("Querying ball of radius %lf\n", BALL_RADIUS);
         for(j=0; j<threads; j++){
             for(k=0; k<n; k++) p.x[k] = 0;
-            hit_and_run(p,32, epsilon, BALL_RADIUS*2, &k_and_ball_i);
+            hit_and_run(p,1<<5, theta, BALL_RADIUS*2, &k_and_ball_i);
             if (k_and_last_ball(p)){
                 points_in++;
             }
         }
 
+        LAST_BALL_RADIUS = BALL_RADIUS;
+        BALL_RADIUS *= radius_ratio;
+        
         //printf("%d of %d points inside last ball\n", points_in, threads);
-
         vol *= (double) threads/points_in;
     }
 
+    printf("\n");
+    
     return vol;
 
 }
@@ -131,12 +140,14 @@ int main(void){
     
     ZIGGURAT_SEED = 123456789;
     
+    init_genrand(clock());
+    
     r4_nor_setup(ZIGGURAT_KN, ZIGGURAT_FN, ZIGGURAT_WN);
     
-    for(i=0; i<1000; i++){
-        vol = estimate_volume(&square, 3, sqrt(3), 0.000001);
+    for(i=0; i<1; i++){
+        vol = estimate_volume(&square, 3, sqrt(3), 0.1, 0.00001);
         printf("%lf\n", vol);
         total += vol;
     }
-    printf("%lf\n", total/1000);
+    printf("%lf\n", total/1);
 }

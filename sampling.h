@@ -17,6 +17,7 @@ double find_argval_left(density f,point dir,point start,double epsilon,double lb
 double find_argval_right(density f,point dir,point start,double epsilon,double lbound,double ubound);
 double find_argmax(density f,point dir,point start,double epsilon,double lbound,double ubound);
 double max(double a,double b);
+double min(double a,double b);
 double boundary_distance(point start,point dir,double epsilon,double diameter,inclusion_oracle in);
 void move_point(point dest,point src);
 double sq_dist(point p1,point p2);

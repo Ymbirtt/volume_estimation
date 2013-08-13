@@ -125,8 +125,8 @@ void random_dir(point v, double r){
 void add_point(point dest, point src1, point src2){
     int i;
 
-    assert(src1.n == src2.n);
-    assert(dest.n == src1.n);
+    //assert(src1.n == src2.n);
+    //assert(dest.n == src1.n);
 
     for (i=0; i<src1.n; i++){
         dest.x[i] = src1.x[i] + src2.x[i];
@@ -137,8 +137,8 @@ void add_point(point dest, point src1, point src2){
 void addmul_point(point dest, point src1, double lambda, point src2){
     int i;
 
-    assert(src1.n == src2.n);
-    assert(dest.n == src1.n);
+    //assert(src1.n == src2.n);
+    //assert(dest.n == src1.n);
 
     for (i=0; i<src1.n; i++){
         dest.x[i] = src1.x[i] + (lambda * src2.x[i]);
@@ -149,8 +149,8 @@ void addmul_point(point dest, point src1, double lambda, point src2){
 void sub_point(point dest, point src1, point src2){
     int i;
 
-    assert(src1.n == src2.n);
-    assert(dest.n == src1.n);
+    //assert(src1.n == src2.n);
+    //assert(dest.n == src1.n);
 
     for (i=0; i<src1.n; i++){
         dest.x[i] = src1.x[i] - src2.x[i];
@@ -162,7 +162,7 @@ double sq_dist(point p1, point p2){
     int i;
     double dist = 0.0;
 
-    assert(p1.n == p2.n);
+    //assert(p1.n == p2.n);
 
     for (i=0; i<p1.n; i++){
         dist += (p1.x[i] - p2.x[i]) * (p1.x[i] - p2.x[i]);
@@ -175,7 +175,7 @@ double sq_dist(point p1, point p2){
 void move_point(point dest, point src){
     int i;
 
-    assert(src.n == dest.n);
+    //assert(src.n == dest.n);
 
     for(i=0; i<src.n; i++){
         dest.x[i] = src.x[i];
@@ -212,6 +212,7 @@ double boundary_distance(point start, point dir, double epsilon, double diameter
     //print_point(upper);
     //printf("\n");
     //printf("diameter = %lf\n", diameter);
+    
     if (in(upper)){
         printf("WARNING: Upper bound was inside shape - select larger diameter\n");
         print_point(upper);
@@ -221,11 +222,18 @@ double boundary_distance(point start, point dir, double epsilon, double diameter
         printf("\n");
         printf("diameter = %lf\n", diameter);
     }
+    /*
     while(in(upper)){
+        print_point(upper);
+        printf("\n");
+        printf("Jumping in direction ");
+        print_point(dir);
+        printf("\n");
+        printf("diameter = %lf\n", diameter);
         diameter *= 2;
         addmul_point(upper, start, diameter, dir);
     }
-
+    */
     while (sq_dist(lower, upper) > epsilon){
         //printf("dist = %lf\n", sq_dist(lower, upper));
         diameter = diameter/2;
@@ -252,6 +260,11 @@ double boundary_distance(point start, point dir, double epsilon, double diameter
 
 double max(double a, double b){
     if (a>b) return a;
+    return b;
+}
+
+double min(double a, double b){
+    if (a<b) return a;
     return b;
 }
 
@@ -391,7 +404,7 @@ void hit_and_run_dist(point start, int steps, double epsilon,
     //printf("Start: ");
     //print_point(start);
     //printf("\n");
-    assert(in(start));
+    //assert(in(start));
     
     
     for (i=0; i<steps; i++){
@@ -416,7 +429,7 @@ void hit_and_run_dist(point start, int steps, double epsilon,
         step = rejection_sample(f, dir, start, lbound, a ,b, m);
 
         addmul_point(start, start, step, dir);
-        assert(in(start));
+        //assert(in(start));
     }
 
     
@@ -424,7 +437,7 @@ void hit_and_run_dist(point start, int steps, double epsilon,
     //print_point(start);
     //printf("\n");
 
-    assert(in(start));
+    //assert(in(start));
 
 }
 
@@ -441,6 +454,8 @@ void hit_and_run(point start, int steps, double epsilon,
     dir.n = start.n;
     dir.x = malloc(dir.n*sizeof(double));
 
+    assert(in(start));
+    
     for (i=0; i<steps; i++){
         //print_point(start);
         //printf("\n");
@@ -448,6 +463,8 @@ void hit_and_run(point start, int steps, double epsilon,
 
         ubound = boundary_distance(start, dir, epsilon,  diameter, in);
         lbound = boundary_distance(start, dir, epsilon, -diameter, in);
+        
+        //printf("[%lf,%lf]\n", lbound, ubound);
 
         addmul_point(start, start, uniform(lbound, ubound), dir);
     }
@@ -549,18 +566,15 @@ void grid_walk(point start, int steps, double delta, inclusion_oracle in){
 
 }
 
-//The square [0,1]^5
+//The square [-1,1]^n
 int square(point p){
     //assert(p.n == 5);
-    if(p.x[0] >= -1 && p.x[0] <= 1 &&
-       p.x[1] >= -1 && p.x[1] <= 1 &&
-       p.x[2] >= -1 && p.x[2] <= 1 
-       //p.x[4] >= 0.0 && p.x[4] <= 1.0)
-       ){
-        return 1;
-    } else {
-        return 0;
+    int i;
+    
+    for(i=0; i<3; i++){
+        if (p.x[i]<-1 || p.x[i] >1) return 0;
     }
+    return 1;
 }
 
 double funky_dist(point p){

@@ -1,4 +1,4 @@
-FLAGS = -Wall -g -O3 --std=c99 -fopenmp
+FLAGS = -Wall -g  --std=c99 -pg
 CC = gcc
 
 all:
@@ -13,8 +13,8 @@ sampling: sampling.c mt.o ziggurat.o
 ziggurat: ziggurat.c
 	$(CC) $(FLAGS) -o ./ziggurat.o ./ziggurat.c
     
-volume: ziggurat.o sampling.o mt.o volume_estimation.c
-	$(CC) $(FLAGS) -o ./volume.exe ./sampling.o ./ziggurat.o ./mt.o ./volume_estimation.c
+volume: ziggurat.o sampling.o mt.o lovasz-vempala.c
+	$(CC) $(FLAGS) -o ./volume.exe ./sampling.o ./ziggurat.o ./mt.o ./lovasz-vempala.c
     
 clean:
 	rm -f ./*.exe
