@@ -12,16 +12,16 @@
 
 typedef int (*inclusion_oracle)(point);
 
-double SCALE_FAC = HUGE_VAL;
-//double GAMMA = HUGE_VAL;
-double PENCIL_HEIGHT = HUGE_VAL;
+float SCALE_FAC = HUGE_VAL;
+//float GAMMA = HUGE_VAL;
+float PENCIL_HEIGHT = HUGE_VAL;
 inclusion_oracle PENCIL_ORACLE = NULL;
 inclusion_oracle BALL_ORACLE;
-double BALL_RADIUS;
-double LAST_BALL_RADIUS;
+float BALL_RADIUS;
+float LAST_BALL_RADIUS;
 
 
-int double_fac(int n){
+int float_fac(int n){
     int i;
     int res=1;
 
@@ -41,8 +41,8 @@ int fac(int n){
     return res;
 }
 
-double int_pow(double x, int y){
-    double result = 1;
+float int_pow(float x, int y){
+    float result = 1;
 
     while (y>0){
         if (y&1){
@@ -57,22 +57,22 @@ double int_pow(double x, int y){
 }
 
 //http://en.wikipedia.org/wiki/Volume_of_an_n-ball
-double volume_nball(double radius, int n){
+float volume_nball(float radius, int n){
 
     if (n&1){
         //formula for odd n
-        return (1<<(((n-1)/2)+1)) * int_pow(PI,(n-1)/2) * int_pow(radius, n) / ((double) double_fac(n));
+        return (1<<(((n-1)/2)+1)) * int_pow(PI,(n-1)/2) * int_pow(radius, n) / ((float) float_fac(n));
     } else {
         //formula for even n
-        return int_pow(PI,n/2)*int_pow(radius,n)/((double)fac(n/2));
+        return int_pow(PI,n/2)*int_pow(radius,n)/((float)fac(n/2));
     }
 }
 
 //Initialise an array of values for the vector a
-double* init_as(const int m, const int n){
+float* init_as(const int m, const int n){
     int i;
-    double* a = malloc((m+1)*sizeof(double));
-    double factor = (1-1/sqrt(n));
+    float* a = malloc((m+1)*sizeof(float));
+    float factor = (1-1/sqrt(n));
 
     a[1] = 6*n;
 
@@ -83,10 +83,10 @@ double* init_as(const int m, const int n){
     return a;
 }
 
-double* init_gammas(int m, int n, double* a){
-    double* gamma = malloc(m*sizeof(double));
+float* init_gammas(int m, int n, float* a){
+    float* gamma = malloc(m*sizeof(float));
     int i;
-    double sqrt_n = sqrt(n);
+    float sqrt_n = sqrt(n);
 
     for(i=0; i<m; i++){
         gamma[i] = max(1.0, a[i]/sqrt_n);
@@ -95,13 +95,13 @@ double* init_gammas(int m, int n, double* a){
     return gamma;
 }
 
-double exp_density(point p){
+float exp_density(point p){
     return exp(SCALE_FAC * p.x[p.n-1]);
 }
 
 //Returns 0 iff p is not inside the pencil constructed over the pencil oracle
 int in_pencil(point p){
-    double sq_sum = 0;
+    float sq_sum = 0;
     int i;
     
     //printf("Pencil!\n");
@@ -129,9 +129,9 @@ int in_pencil(point p){
 }
 
 
-double sq_norm(point p){
+float sq_norm(point p){
     int i;
-    double res = 0;
+    float res = 0;
 
     for(i=0; i<p.n; i++){
         res += p.x[i]*p.x[i];
@@ -149,41 +149,41 @@ int k_and_last_ball(point p){
     return BALL_ORACLE(p);
 }
 
-double estimate_pencil(inclusion_oracle o, int n, double d, double epsilon, double theta){
-    double vol = volume_nball(1,n);
-    double radius_ratio = exp((double) 1/n);
-    int stages = (int) n*ceil(log(d)) +1;
-    int threads = 40000; //(int) (400 * n * log(n) / (epsilon * epsilon));
+float estimate_pencil(inclusion_oracle o, int n, float d, float epsilon, float theta){
+    float vol = volume_nball(1,n);
+    float radius_ratio = exp((float) 1/n);
+    int stages =  (int) n*ceil(log(d)) +1;
+    int threads = (int) (400 * n * log(n) / (epsilon * epsilon));
     int i,j,k;
     int points_in;
     point p;
 
 
     p.n = n;
-    p.x = malloc(n*sizeof(double));
+    p.x = malloc(n*sizeof(float));
 
     for(i=0; i<n; i++) p.x[i] = 0;
     
-    printf("Each stage uses %d threads\n", threads);
+    //printf("Each stage uses %d threads\n", threads);
 
     PENCIL_ORACLE = o;
     PENCIL_HEIGHT = d;
     
-    printf("Pencil height = %lf\n", PENCIL_HEIGHT);
+    //printf("Pencil height = %f\n", PENCIL_HEIGHT);
     
     BALL_ORACLE = &in_pencil;
     LAST_BALL_RADIUS = 1;
     BALL_RADIUS = LAST_BALL_RADIUS * radius_ratio;
 
     for(i=1; i<stages; i++){
-        printf("Stage %d of %d      \r", i, stages);
-        fflush(stdout);
+        //printf("Stage %d of %d      \r", i, stages);
+        //fflush(stdout);
         points_in = 0;
 
-        //BALL_RADIUS = exp((double) i/(n));
-        //LAST_BALL_RADIUS = exp((double) (i-1)/(n));
+        //BALL_RADIUS = exp((float) i/(n));
+        //LAST_BALL_RADIUS = exp((float) (i-1)/(n));
 
-        //printf("Querying ball of radius %lf\n", BALL_RADIUS);
+        //printf("Querying ball of radius %f\n", BALL_RADIUS);
         for(j=0; j<threads; j++){
             for(k=0; k<n-1; k++) p.x[k] = 0;
             p.x[n-1] = min(BALL_RADIUS/2.0, PENCIL_HEIGHT/2.0);
@@ -198,28 +198,31 @@ double estimate_pencil(inclusion_oracle o, int n, double d, double epsilon, doub
         LAST_BALL_RADIUS = BALL_RADIUS;
         BALL_RADIUS *= radius_ratio;
         
-        printf("\n%d of %d points inside last ball\n", points_in, threads);
-        vol *= (double) threads/points_in;
+        //printf("\n%d of %d points inside last ball\n", points_in, threads);
+        vol *= (float) threads/points_in;
+        //printf("vol = %f\n", vol);
     }
 
-    printf("\n");
+    //printf("\n");
     
-    printf("vol = %lf\n", vol);
+    //printf("vol = %f\n", vol);
+    
+    free(p.x);
     
     return vol;
 
 }
 
 /*
-double estimate_pencil(inclusion_oracle o, int n, double d, double epsilon){
+float estimate_pencil(inclusion_oracle o, int n, float d, float epsilon){
     int m           = (int) (2*ceil(sqrt(n-1)*log((n-1)/epsilon)));
     int k           = 250; //(int) (8/(epsilon*epsilon)) * sqrt(n) * log(n/epsilon);
-    double  delta   = pow(n-1,-10)*epsilon*epsilon;
-    double* a       = init_as(m+1,n-1);
-    double* gamma   = init_gammas(m+1, n-1, a);
+    float  delta   = pow(n-1,-10)*epsilon*epsilon;
+    float* a       = init_as(m+1,n-1);
+    float* gamma   = init_gammas(m+1, n-1, a);
 
-    double  z       = fac(n-1) * volume_nball(1,n-1) * pow(6*(n-1),-(n));
-    double  sum     = 0;
+    float  z       = fac(n-1) * volume_nball(1,n-1) * pow(6*(n-1),-(n));
+    float  sum     = 0;
     point*  big_x   = malloc(k*sizeof(point));
 
     int i,j;
@@ -227,12 +230,12 @@ double estimate_pencil(inclusion_oracle o, int n, double d, double epsilon){
     PENCIL_HEIGHT = 2*d;
     PENCIL_ORACLE = o;
 
-    printf("z starts at %lf\n", z);
-    printf("ball volume is %lf\n", volume_nball(1,n-1));
+    printf("z starts at %f\n", z);
+    printf("ball volume is %f\n", volume_nball(1,n-1));
 
 
     for(i=0; i<k; i++){
-        big_x[i].x = malloc((n)*sizeof(double));
+        big_x[i].x = malloc((n)*sizeof(float));
         big_x[i].n = n;
         for(j=0; j<n-1; j++){
             big_x[i].x[j] = 0;
@@ -250,7 +253,7 @@ double estimate_pencil(inclusion_oracle o, int n, double d, double epsilon){
         //    GAMMA = 1;
         //}
         
-        //printf("GAMMA = %lf\n", GAMMA);
+        //printf("GAMMA = %f\n", GAMMA);
 
         for(j=0; j<k; j++){
             //printf("Thread %d of %d\r", j, k);
@@ -267,20 +270,23 @@ double estimate_pencil(inclusion_oracle o, int n, double d, double epsilon){
     }
     //GAMMA = 1;
 
-    printf("pencil has volume %lf\n", z);
+    free(a);
+    free(gamma);
+    
+    printf("pencil has volume %f\n", z);
     return z;
 }
 */
 
-double estimate_volume(inclusion_oracle o, int n, double d, double epsilon){
-    double pencil_volume;
+float estimate_volume(inclusion_oracle o, int n, float d, float epsilon){
+    float pencil_volume;
     int i,j;
     point p;
     int points_in = 0;
     int total_points = (int) (1/(epsilon*epsilon));
 
     p.n = n+1;
-    p.x = malloc(n*sizeof(double));
+    p.x = malloc(n*sizeof(float));
 
     for (i=0; i<p.n; i++){
         p.x[i] = 0;
@@ -309,13 +315,15 @@ double estimate_volume(inclusion_oracle o, int n, double d, double epsilon){
         }
     }
 
-    printf("Cylinder is %lf the size of pencil\n", (double)total_points/points_in);
+    //printf("Cylinder is %f the size of pencil\n", (float)total_points/points_in);
 
-    printf("By cheating, I know the volume of the cylinder is %lf\n", 2*d*8);
+    //printf("By cheating, I know the volume of the cylinder is %f\n", 2*d*8);
 
-    printf("The volume of the pencil should be %lf\n", 2*d*8*((double) points_in/total_points));
+    //printf("The volume of the pencil should be %f\n", 2*d*8*((float) points_in/total_points));
 
-    return ((double) total_points/points_in) * pencil_volume / (2*d);
+    free(p.x);
+    
+    return ((float) total_points/points_in) * pencil_volume / (2*d);
 }
 
 //The square [0,1]^5
@@ -334,6 +342,12 @@ int square(point p){
 }
 */
 int main (void){
-    init_genrand(0);
-    printf("%lf\n", estimate_volume(&square, 3, sqrt(3), 0.01));
+    int i;
+    init_genrand(clock());
+    //r4_nor_setup(ZIGGURAT_KN, ZIGGURAT_FN, ZIGGURAT_WN);
+    //ZIGGURAT_SEED = clock();
+    
+    for (i=0; i<1000; i++){
+        printf("%f\n", estimate_volume(&square, 3, sqrt(3), 0.1));
+    }
 }

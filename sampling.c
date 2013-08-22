@@ -18,20 +18,17 @@
 #define PI (3.1415926535897932384626338)
 #define E  (2.718281828459045235360)
 
-
-#ifdef INTERFACE
-
+/*
 typedef struct __point__{
-    double* x;
+    float* x;
     int n;
 } point;
 
 //An inclusion oracle should take a point and return 0 iff the point is not
 //inside the shape
 typedef int (*inclusion_oracle)(point);
-typedef double (*density)(point);
-
-#endif
+typedef float (*density)(point);
+*/
 
 
 float ZIGGURAT_FN[128];
@@ -45,14 +42,14 @@ unsigned long int ZIGGURAT_SEED;
 void print_point(point p){
     int i;
     for (i=0; i<p.n-1; i++){
-        printf("%lf,", p.x[i]);
+        printf("%f,", p.x[i]);
     }
-    printf("%lf", p.x[i]);
+    printf("%f", p.x[i]);
 }
 
 //Returns a continuous, uniormly distributed random-ish number between a and b
 //seeding function should be called beforehand
-double uniform(double a, double b){
+float uniform(float a, float b){
     return genrand_real1()*(b-a) + a;
 }
 
@@ -63,7 +60,7 @@ point copy_point(point p){
     int i;
 
     new_point.n = p.n;
-    new_point.x = malloc(p.n*sizeof(double));
+    new_point.x = malloc(p.n*sizeof(float));
     for(i=0; i<p.n; i++){
         new_point.x[i] = p.x[i];
     }
@@ -71,9 +68,9 @@ point copy_point(point p){
 }
 
 //Stores two normal gaussian variables in dest1 and dest2
-void gaussians(double* dest1, double* dest2){
-    double rand1 = uniform(0,1);
-    double rand2 = uniform(0,1);
+void gaussians(float* dest1, float* dest2){
+    float rand1 = uniform(0,1);
+    float rand2 = uniform(0,1);
 
     *dest1 = sqrt(-2*log(rand1)) * cos(2*PI*(rand2));
     *dest2 = sqrt(-2*log(rand1)) * sin(2*PI*(rand2));
@@ -83,10 +80,10 @@ void gaussians(double* dest1, double* dest2){
 //http://mathworld.wolfram.com/HyperspherePointPicking.html
 //Probably worth bringing a Ziggurat library in, time permitting.
 //http://people.sc.fsu.edu/~jburkardt/c_src/ziggurat/ziggurat.html
-void random_dir(point v, double r){
+void random_dir(point v, float r){
     int i;
-    double rand1, rand2;
-    double square_sum = 0;
+    float rand1, rand2;
+    float square_sum = 0;
     /*
     for (i=0; i<v.n/2; i++){
         gaussians(&rand1, &rand2);
@@ -109,7 +106,7 @@ void random_dir(point v, double r){
     for (i=0; i<v.n; i++){
         rand1 = r4_nor(&ZIGGURAT_SEED, ZIGGURAT_KN, ZIGGURAT_FN, ZIGGURAT_WN);
         v.x[i] = rand1;
-        //printf("%lf\n", rand1);
+        //printf("%f\n", rand1);
         square_sum += rand1*rand1;
     }
     
@@ -134,7 +131,7 @@ void add_point(point dest, point src1, point src2){
 }
 
 //Adds src1+(lambda*src2) and stores the result in dest
-void addmul_point(point dest, point src1, double lambda, point src2){
+void addmul_point(point dest, point src1, float lambda, point src2){
     int i;
 
     //assert(src1.n == src2.n);
@@ -158,9 +155,9 @@ void sub_point(point dest, point src1, point src2){
 }
 
 //Returns the squared distance between the given points
-double sq_dist(point p1, point p2){
+float sq_dist(point p1, point p2){
     int i;
-    double dist = 0.0;
+    float dist = 0.0;
 
     //assert(p1.n == p2.n);
 
@@ -187,11 +184,11 @@ void move_point(point dest, point src){
 //correct to error bounds +- sqrt(epsilon), assuming dir is of unit length
 //If diameter is negative, the returned distance will be nagative and in the
 //opposite direction from dir
-double boundary_distance(point start, point dir, double epsilon, double diameter, inclusion_oracle in){
+float boundary_distance(point start, point dir, float epsilon, float diameter, inclusion_oracle in){
     point lower = copy_point(start);
     point upper;
     point query_point;
-    double distance = 0;
+    float distance = 0;
 
     //printf("Finding boundary\n");
 
@@ -200,18 +197,18 @@ double boundary_distance(point start, point dir, double epsilon, double diameter
     //printf("\n");
 
     upper.n = start.n;
-    upper.x = malloc(start.n*sizeof(double));
+    upper.x = malloc(start.n*sizeof(float));
 
     query_point.n = start.n;
-    query_point.x = malloc(start.n*sizeof(double));
+    query_point.x = malloc(start.n*sizeof(float));
 
     addmul_point(upper, start, diameter, dir);
 
-    assert(in(lower));
+    //assert(in(lower));
     //printf("Ending at ");
     //print_point(upper);
     //printf("\n");
-    //printf("diameter = %lf\n", diameter);
+    //printf("diameter = %f\n", diameter);
     
     if (in(upper)){
         printf("WARNING: Upper bound was inside shape - select larger diameter\n");
@@ -220,7 +217,7 @@ double boundary_distance(point start, point dir, double epsilon, double diameter
         printf("Jumping in direction ");
         print_point(dir);
         printf("\n");
-        printf("diameter = %lf\n", diameter);
+        printf("diameter = %f\n", diameter);
     }
     /*
     while(in(upper)){
@@ -229,15 +226,15 @@ double boundary_distance(point start, point dir, double epsilon, double diameter
         printf("Jumping in direction ");
         print_point(dir);
         printf("\n");
-        printf("diameter = %lf\n", diameter);
+        printf("diameter = %f\n", diameter);
         diameter *= 2;
         addmul_point(upper, start, diameter, dir);
     }
     */
     while (sq_dist(lower, upper) > epsilon){
-        //printf("dist = %lf\n", sq_dist(lower, upper));
+        //printf("dist = %f\n", sq_dist(lower, upper));
         diameter = diameter/2;
-        //printf("diameter = %lf\n", diameter);
+        //printf("diameter = %f\n", diameter);
         addmul_point(query_point, lower, diameter, dir);
         if (in(query_point)){
             move_point(lower, query_point);
@@ -251,32 +248,32 @@ double boundary_distance(point start, point dir, double epsilon, double diameter
     free(lower.x);
     free(query_point.x);
 
-    //printf("distance = %lf\n", distance);
+    //printf("distance = %f\n", distance);
 
     //printf("======\n");
 
     return distance;
 }
 
-double max(double a, double b){
+float max(float a, float b){
     if (a>b) return a;
     return b;
 }
 
-double min(double a, double b){
+float min(float a, float b){
     if (a<b) return a;
     return b;
 }
 
-double find_argmax(density f, point dir, point start, double epsilon,
-                    double lbound, double ubound){
+float find_argmax(density f, point dir, point start, float epsilon,
+                    float lbound, float ubound){
     point q1,q2;
 
     q1.n = dir.n;
-    q1.x = malloc(dir.n*sizeof(double));
+    q1.x = malloc(dir.n*sizeof(float));
 
     q2.n = dir.n;
-    q2.x = malloc(dir.n*sizeof(double));
+    q2.x = malloc(dir.n*sizeof(float));
 
     //INVARIANT: The function increases to the right of lbound and decreases to
     //the right of ubound, implying that the maximum is in (lbound,ubound)
@@ -303,14 +300,14 @@ double find_argmax(density f, point dir, point start, double epsilon,
 
 
 
-double find_argval_right(density f, point dir, point start, double epsilon,
-                        double lbound, double ubound){
-    double target;
+float find_argval_right(density f, point dir, point start, float epsilon,
+                        float lbound, float ubound){
+    float target;
 
     point p;
 
     p.n = start.n;
-    p.x = malloc(p.n*sizeof(double));
+    p.x = malloc(p.n*sizeof(float));
 
     addmul_point(p, start, lbound, dir);
 
@@ -330,16 +327,16 @@ double find_argval_right(density f, point dir, point start, double epsilon,
     return (ubound+lbound)/2;
 }
 
-double find_argval_left(density f, point dir, point start, double epsilon,
-                        double lbound, double ubound){
-    double target;
+float find_argval_left(density f, point dir, point start, float epsilon,
+                        float lbound, float ubound){
+    float target;
 
     point p;
 
     p = copy_point(start);
 
     p.n = start.n;
-    p.x = malloc(p.n*sizeof(double));
+    p.x = malloc(p.n*sizeof(float));
 
     addmul_point(p, start, lbound, dir);
 
@@ -359,16 +356,16 @@ double find_argval_left(density f, point dir, point start, double epsilon,
     return (ubound+lbound)/2;
 }
 
-double rejection_sample(density f, point dir, point start, double lbound,
-                            double a, double b, double m){
+float rejection_sample(density f, point dir, point start, float lbound,
+                            float a, float b, float m){
     point p;
-    double f_max;
-    double y,r;
+    float f_max;
+    float y,r;
 
     if (a==b) return 0;
 
     p.n = dir.n;
-    p.x = malloc(p.n*sizeof(double));
+    p.x = malloc(p.n*sizeof(float));
 
     addmul_point(p, start, m, dir);
 
@@ -380,26 +377,26 @@ double rejection_sample(density f, point dir, point start, double lbound,
         r = uniform(0,1);
     } while(f(p) < r*f_max);
 
-    //printf("Sampled %lf\n", y);
+    //printf("Sampled %f\n", y);
 
     return y;
 }
 
 
-void hit_and_run_dist(point start, int steps, double epsilon,
-                        double diameter, inclusion_oracle in, density f){
+void hit_and_run_dist(point start, int steps, float epsilon,
+                        float diameter, inclusion_oracle in, density f){
     point dir;
     //Upper and lower bounds on the distance in which we can walk in direction dir
     //Tight within an error of epsilon
-    double ubound, lbound;
+    float ubound, lbound;
     //m maximises f(dir*m), a<m and b>m both satisfy f(dir*a) = epsilon*f(dir*m)
-    double m,a,b;
+    float m,a,b;
     //The size of the step we eventually take
-    double step;
+    float step;
     int i;
 
     dir.n = start.n;
-    dir.x = malloc(dir.n*sizeof(double));
+    dir.x = malloc(dir.n*sizeof(float));
 
     //printf("Start: ");
     //print_point(start);
@@ -424,7 +421,7 @@ void hit_and_run_dist(point start, int steps, double epsilon,
         a =  find_argval_left(f, dir, start, epsilon, lbound, m);
         b = find_argval_right(f, dir, start, epsilon, m, ubound);
 
-        //printf("Boundaries are [%lf,%lf], max at %lf\n", a, b, m);
+        //printf("Boundaries are [%f,%f], max at %f\n", a, b, m);
 
         step = rejection_sample(f, dir, start, lbound, a ,b, m);
 
@@ -442,43 +439,56 @@ void hit_and_run_dist(point start, int steps, double epsilon,
 }
 
 //Performs a hit and run walk for the given number of steps
-void hit_and_run(point start, int steps, double epsilon,
-                    double diameter, inclusion_oracle in){
+void hit_and_run(point start, int steps, float epsilon,
+                    float diameter, inclusion_oracle in){
     point dir;
     //Upper and lower bounds on the distance in which we can walk in direction dir
     //Tight within an error of epsilon
-    double ubound;
-    double lbound;
+    float ubound;
+    float lbound;
+    float dist;
     int i;
 
     dir.n = start.n;
-    dir.x = malloc(dir.n*sizeof(double));
+    dir.x = malloc(dir.n*sizeof(float));
 
     assert(in(start));
     
     for (i=0; i<steps; i++){
-        //print_point(start);
-        //printf("\n");
+
+
         random_dir(dir, 1);
 
         ubound = boundary_distance(start, dir, epsilon,  diameter, in);
         lbound = boundary_distance(start, dir, epsilon, -diameter, in);
         
-        //printf("[%lf,%lf]\n", lbound, ubound);
-
-        addmul_point(start, start, uniform(lbound, ubound), dir);
+        //print_point(dir);
+        //printf("\n");
+        dist = uniform(lbound,ubound);
+        //printf("%f from [%f,%f]\n", dist, lbound, ubound);
+        addmul_point(start, start, dist, dir);
+        if (!in(start)){
+            printf("WARNING: Escaped shape\n");
+            print_point(dir);
+            printf("\n");
+            printf("%f from [%f,%f]\n", dist, lbound, ubound);
+            print_point(start);
+            printf("\n");
+            print_radius(start);
+        }
+        //assert(in(start));
     }
 }
 
-void ball_walk(point start, int steps, double delta, inclusion_oracle in){
+void ball_walk(point start, int steps, float delta, inclusion_oracle in){
     point query_point = copy_point(start);
     point dir;
     int i;
 
     dir.n = start.n;
-    dir.x = malloc(dir.n*sizeof(double));
+    dir.x = malloc(dir.n*sizeof(float));
 
-    //printf("%lf\n", delta);
+    //printf("%f\n", delta);
 
     for (i=0; i<steps; i++){
         //print_point(start);
@@ -498,7 +508,7 @@ void ball_walk(point start, int steps, double delta, inclusion_oracle in){
 
 //Perturbs start according to a random walk in space after performing a particular
 //number of steps in a uniform grid random walk, with steps of size delta
-void grid_walk(point start, int steps, double delta, inclusion_oracle in){
+void grid_walk(point start, int steps, float delta, inclusion_oracle in){
     //The current location in the walk
     point query_point = copy_point(start);
     int i,j, k;
@@ -571,14 +581,16 @@ int square(point p){
     //assert(p.n == 5);
     int i;
     
-    for(i=0; i<3; i++){
+    for(i=0; i<2; i++){
         if (p.x[i]<-1 || p.x[i] >1) return 0;
     }
+    
+    if (p.x[3]<-1 || p.x[3] >19) return 0;
     return 1;
 }
 
-double funky_dist(point p){
-    double sq_sum = 0;
+float funky_dist(point p){
+    float sq_sum = 0;
     int i;
 
     if (!square(p)) return 0;
@@ -591,8 +603,8 @@ double funky_dist(point p){
     //return 1;
 }
 
-void rejection_sample_dist(point p, density f, point lower, point upper, double f_max){
-    double r;
+void rejection_sample_dist(point p, density f, point lower, point upper, float f_max){
+    float r;
     int i;
 
     do{
@@ -608,16 +620,16 @@ void rejection_sample_dist(point p, density f, point lower, point upper, double 
 
     /*
 
-    double lbound;
-    double ubound;
-    double m;
+    float lbound;
+    float ubound;
+    float m;
     point p,dir;
 
     p.n = 5;
-    p.x = malloc(p.n*sizeof(double));
+    p.x = malloc(p.n*sizeof(float));
 
     dir.n = 5;
-    dir.x = malloc(dir.n*sizeof(double));
+    dir.x = malloc(dir.n*sizeof(float));
 
     init_genrand(clock());
 
@@ -636,11 +648,11 @@ void rejection_sample_dist(point p, density f, point lower, point upper, double 
     ubound = boundary_distance(p, dir, 0.001,  sqrt(5), &square);
     lbound = boundary_distance(p, dir, 0.001, -sqrt(5), &square);
 
-    printf("Boundaries are [%lf,%lf]\n", lbound, ubound);
+    printf("Boundaries are [%f,%f]\n", lbound, ubound);
 
     m = find_argmax(&funky_dist, dir, p, 0.001, lbound, ubound);
 
-    printf("Function is maximised at %lf\n", m);
+    printf("Function is maximised at %f\n", m);
     */
 /*
     if (argc != 2){
@@ -658,13 +670,13 @@ void rejection_sample_dist(point p, density f, point lower, point upper, double 
     init_genrand(clock());
 
     p.n = 5;
-    p.x = malloc(p.n*sizeof(double));
+    p.x = malloc(p.n*sizeof(float));
 
     u.n = 5;
-    u.x = malloc(p.n*sizeof(double));
+    u.x = malloc(p.n*sizeof(float));
 
     l.n = 5;
-    l.x = malloc(p.n*sizeof(double));
+    l.x = malloc(p.n*sizeof(float));
 
     l.x[0] = 0.0;
     l.x[1] = 0.0;
